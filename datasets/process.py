@@ -19,15 +19,19 @@ def dataLoader(file_path):
     df = pd.read_csv(file_path)
     raw_tensor = csv2tensor(file_path)
     C, T = raw_tensor.shape
-    if "concentrating" in file_path:
-        label = torch.tensor([2], dtype=torch.float32)
-    elif "relaxed" in file_path:
-        label = torch.tensor([0], dtype=torch.float32)
-    elif "neutral" in file_path:
-        label = torch.tensor([1], dtype=torch.float32)
-    
     segment_length = 250
     batch_size = T // segment_length
+
+    if "concentrating" in file_path:
+        label = torch.tensor([2], dtype=torch.float32)
+        label = label.expand(batch_size,)
+    elif "relaxed" in file_path:
+        label = torch.tensor([0], dtype=torch.float32)
+        label = label.expand(batch_size,)
+    elif "neutral" in file_path:
+        label = torch.tensor([1], dtype=torch.float32)
+        label = label.expand(batch_size,)
+    
     res = raw_tensor[:, :batch_size * segment_length].reshape(batch_size, C, segment_length)
 
     # print(res.shape)
@@ -35,12 +39,16 @@ def dataLoader(file_path):
     # print(res)
     return res, label
 
-folder_path = os.getcwd()
-files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
+def assemble_data():
+    folder_path = os.getcwd()
+    files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
 
-#test
-# for file_name in files:
-#     file_path = os.path.join(folder_path, file_name)
-#     tensor = csv2tensor(file_path)
-#     print(tensor.shape)
-# tensor=dataLoader(files[4])
+    data = []
+    labels = []
+    for file in files:
+        tensor, label = dataLoader(file)
+        data.append(tensor)
+        labels.append(label)
+    res=torch.cat(data, dim=0)
+    labels=torch.cat(labels, dim=0)
+    return res, labels
